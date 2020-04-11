@@ -82,13 +82,12 @@ impl<'s> System<'s> for InputSystem {
         self.remove_expired_latches(t);
 
         let commands = vec![
-            //Command, send_command_to_queue?)
-            (Command::TypingMode, false),
-            (Command::Move(Orientation::North), true),
-            (Command::Move(Orientation::East), true),
-            (Command::Move(Orientation::South), true),
-            (Command::Move(Orientation::West), true),
-            (Command::Melee, true),
+            Command::TypingMode,
+            Command::Move(Orientation::North),
+            Command::Move(Orientation::East),
+            Command::Move(Orientation::South),
+            Command::Move(Orientation::West),
+            Command::Melee,
         ];
 
         let input_events = input_event_channel.read(&mut self.reader);
@@ -129,19 +128,13 @@ impl<'s> System<'s> for InputSystem {
                 }
             }
         } else {
-            for c in commands {
-                let input_action = c.0;
-                let send_command = c.1;
-                if input.action_is_down(&input_action).unwrap() {
-                    if try_latch(
-                        input_action.clone(),
-                        &mut self.latched_actions,
-                        action_expiry,
-                    ) {
-                        if send_command {
-                            log::info!("Command: {:?}", input_action);
-                            command_queue.add(input_action.clone());
-                        } else if input_action == Command::TypingMode {
+            for command in commands {
+                if input.action_is_down(&command).unwrap() {
+                    if try_latch(command.clone(), &mut self.latched_actions, action_expiry) {
+                        if command != Command::TypingMode {
+                            log::info!("Command: {:?}", command);
+                            command_queue.add(command.clone());
+                        } else {
                             self.typing_mode = !self.typing_mode;
                             try_latch(
                                 VirtualKeyCode::Return,
